@@ -133,14 +133,15 @@ const QuestionHeader = ({ user }) => {
 
 const QuestionPage = () => {
   const [user, setUser] = useState([]);
-  const [questions, setQuestions] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const [questions, setQuestions] = useState([]); // 현재까지 불러온 질문 목록을 저장하는데 사용
+  const [hasMore, setHasMore] = useState(true); // 더 불러올 데이터가 있는지 여부를 나타냄
+  const [page, setPage] = useState(0); // 현재까지 불러온 페이지 수
 
-  const elementRef = useRef(null);
+  const elementRef = useRef(null); // Intersection Observer에서 관찰 대상으로 사용될 엘리먼트
 
   const getUserQuestions = async () => {
     const response = await fetch(
+      // limit:한번에 4개의 데이터를 가져오고, offset:(page*4)개의 데이터를 넘기고 데이터를 가져옴
       `${API_BASE_URL}/subjects/${USER_ID}/questions/?limit=4&offset=${page * 4}`,
     );
     const responseQuestions = await response.json();
@@ -149,29 +150,31 @@ const QuestionPage = () => {
     } else {
       setQuestions(prevQuestions => [
         ...prevQuestions,
-        ...responseQuestions.results,
+        ...responseQuestions.results, // 기존 질문 목록에 새로운 데이터가 추가된 새로운 배열
       ]);
-      setPage(prevPage => prevPage + 1);
+      setPage(prevPage => prevPage + 1); // 페이지 수 증가
     }
   };
   const onInterSection = entries => {
     const firstEntry = entries[0];
     if (firstEntry.isIntersecting && hasMore) {
-      getUserQuestions();
+      // .isIntersecting': 해당 엘리먼트가 화면에 보이는지 여부를 나타내는 속성
+      getUserQuestions(); // 특정 엘리먼트가 화면에 나타나면서 더 많은 데이터를 가져올 수 있는 상황인지 검사
     }
   };
 
   useEffect(() => {
-    const observer = new IntersectionObserver(onInterSection);
+    const observer = new IntersectionObserver(onInterSection); // IntersectionObserver 생성,()안에는 관찰 대상의 상태가 변경될 때 호출되는 콜백함수
     if (observer && elementRef.current) {
-      observer.observe(elementRef.current);
+      // observer가 존재하고 현재 참조하고 있는 엘리먼트가 존재하면
+      observer.observe(elementRef.current); // 관찰 대상 등록, ()안에는 관찰 대상이 되는 HTML 요소
     }
     return () => {
       if (observer) {
-        observer.disconnect();
+        observer.disconnect(); // 모든 관찰을 중지하고 observer 해제
       }
-    };
-  }, [questions]);
+    }; // useEffect의 cleanup 함수. 컴포넘트가 언마운트되거나 업데이트될 때 이전에 등록한 IntersectionObserver를 해제한다. 이를 통해 불필요한 리소스 소모를 방지하고 메모리 누수를 방지한다.
+  }, [questions]); // questions가 변경될 때마다 호출
   const fetchData = async () => {
     const responseUser = await getUser();
     setUser(responseUser);
