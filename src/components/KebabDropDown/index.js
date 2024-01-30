@@ -1,16 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import DropDownContainer from './style';
+import DeleteModalContext from '../../contexts/DeleteModalContext';
+import QuestionIdContext from '../../contexts/QuestionIdContext';
 
 const KebabDropDown = ({
   question,
   handleEditClick,
   isEditing,
   setClickStatus,
+  setQuestions,
 }) => {
   const dropdownRef = useRef(null);
   const { id } = question;
+  const setIsDeleteModal = useContext(DeleteModalContext);
+  const setQuestionId = useContext(QuestionIdContext);
 
   useEffect(() => {
+    setQuestionId(question.id);
+
     const handleClickOutside = e => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setClickStatus(false);
@@ -67,22 +74,8 @@ const KebabDropDown = ({
     );
   };
 
-  const deleteQuestion = async () => {
-    await fetch(
-      `https://openmind-api.vercel.app/3-5/questions/${question.id}/`,
-      {
-        method: 'DELETE',
-      },
-    );
-  };
-
   const handleDeleteAnswer = async () => {
     await deleteAnswer(question.answer.id);
-    window.location.reload(true);
-  };
-
-  const handleDeleteQuestion = async () => {
-    await deleteQuestion(question.id);
     window.location.reload(true);
   };
 
@@ -101,10 +94,22 @@ const KebabDropDown = ({
       },
     );
 
+    const result = await response.json();
+
     if (!response.ok) {
       throw new Error('답변을 전송하는데 실패했습니다.');
     }
-    window.location.reload(true);
+
+    setQuestions(prevQuestions => {
+      const index = prevQuestions.findIndex(
+        prevQuestion => prevQuestion.id === question.id,
+      );
+
+      const temp = prevQuestions.filter(prevQuestion => prevQuestion);
+      temp[index].answer = result;
+
+      return temp;
+    });
   };
 
   const kebabStatus = () => {
@@ -185,7 +190,7 @@ const KebabDropDown = ({
         <li>
           <button
             type="button"
-            onClick={handleDeleteQuestion}
+            onClick={e => setIsDeleteModal(e.target.textContent)}
             onMouseEnter={handleMouseEnterDelete}
             onMouseLeave={handleMouseLeaveDelete}
           >
